@@ -1,0 +1,10 @@
+services:
+  db:
+    image: postgres:15
+    container_name: prisma_postgres
+    environment:
+      POSTGRES_USER: prisma
+      POSTGRES_PASSWORD: mysupersecretpassword
+      POSTGRES_DB: ai_reviewer
+    ports:
+      - "6111:5432"
