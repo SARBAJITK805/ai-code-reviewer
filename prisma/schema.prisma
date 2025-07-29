@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Installation {
+  id             Int      @id @default(autoincrement())
+  installationId Int      @unique @map("installation_id")
+  accountLogin   String   @map("account_login") @db.VarChar(255)
+  accountType    String   @map("account_type") @db.VarChar(50)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  repositories Repository[]
+  reviews      Review[]
+
+  @@map("installations")
+}
+
+model Repository {
+  id             Int          @id @default(autoincrement())
+  installationId Int          @map("installation_id")
+  repoId         Int          @map("repo_id")
+  fullName       String       @map("full_name") @db.VarChar(255)
+  private        Boolean      @default(false)
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  installation Installation @relation(fields: [installationId], references: [installationId])
+
+  @@unique([installationId, repoId])
+  @@map("repositories")
+}
+
+model Review {
+  id             Int       @id @default(autoincrement())
+  prNumber       Int       @map("pr_number")
+  repoFullName   String    @map("repo_full_name") @db.VarChar(255)
+  installationId Int       @map("installation_id")
+  reviewData     Json?     @map("review_data")
+  status         String    @default("pending") @db.VarChar(50)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  completedAt    DateTime? @map("completed_at")
+
+  installation Installation @relation(fields: [installationId], references: [installationId])
+
+  @@unique([prNumber, repoFullName])
+  @@index([repoFullName, prNumber])
+  @@index([status])
+  @@index([createdAt])
+  @@map("reviews")
+}
+
+model ReviewComment {
+  id        Int      @id @default(autoincrement())
+  reviewId  Int      @map("review_id")
+  fileName  String   @map("file_name") @db.VarChar(500)
+  lineNumber Int     @map("line_number")
+  severity  String   @db.VarChar(20)
+  type      String   @db.VarChar(50)
+  message   String   @db.Text
+  suggestion String? @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([reviewId])
+  @@map("review_comments")
+}
