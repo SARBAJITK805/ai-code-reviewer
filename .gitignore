@@ -6,7 +6,7 @@ ai-code-reviewer-sk.2025-07-29.private-key.pem
 .DS_Store
 prisma/migrations/
 
-
+*.pem
 
 # Created by https://www.toptal.com/developers/gitignore/api/node
 # Edit at https://www.toptal.com/developers/gitignore?templates=node
