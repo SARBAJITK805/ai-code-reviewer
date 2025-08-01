@@ -4,11 +4,9 @@ import { App } from "@octokit/app"
 import fs from "fs"
 import { createNodeMiddleware, Webhooks } from "@octokit/webhooks"
 import { prisma } from "./prisma"
+
 const app = express()
 dotenv.config()
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }));
-
 
 const PORT = process.env.PORT || 3000;
 
@@ -22,33 +20,31 @@ const github = new App({
 })
 
 const webhooks = new Webhooks({
-    secret: process.env.WEBHOOK_SECRET,
+    secret: process.env.WEBHOOK_SECRET
 })
 
-webhooks.onAny(async ({ id, name, payload }) => {
-    console.log(payload);
-})
-
-const middleware = createNodeMiddleware(webhooks, { path: "/webhooks/github" });
-
-app.use('*', (req, res, next) => {
-    console.log("=== ALL REQUESTS DEBUG ===");
-    console.log(`Method: ${req.method}`);
-    console.log(`Original URL: ${req.originalUrl}`);
-    console.log(`URL: ${req.url}`);
-    console.log(`Path: ${req.path}`);
-    console.log(`Base URL: ${req.baseUrl}`);
-    if (req.method === 'POST') {
-        console.log(`Content-Type: ${req.headers['content-type']}`);
-        console.log(`GitHub Event: ${req.headers['x-github-event']}`);
-        console.log(`GitHub Delivery: ${req.headers['x-github-delivery']}`);
-        console.log(`User Agent: ${req.headers['user-agent']}`);
-    }
-    console.log("==========================\n");
-    next();
+webhooks.onError((error) => {
+    console.log("WEBHOOK ERROR:");
+    console.log(`Error message: ${error}`);
 });
 
-app.use(middleware)
+webhooks.onAny(async ({ id, name, payload }) => {
+    console.log("WEBHOOK EVENT RECEIVED!");
+    console.log(`Event: ${name}, ID: ${id}`);
+})
+
+webhooks.on('pull_request', async ({ id, name, payload }) => {
+    console.log("PULL REQUEST EVENT!");
+    console.log(`Action: ${payload.action}`);
+    console.log(`PR #${payload.pull_request.number}: ${payload.pull_request.title}`);
+    console.log(`Repository: ${payload.repository.full_name}`);
+});
+
+const middleware = createNodeMiddleware(webhooks, { path: "/webhooks/github" });
+app.use(middleware);
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.get('/', async (req, res) => {
     try {
@@ -68,8 +64,7 @@ app.get('/', async (req, res) => {
     }
 })
 
-
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(` Webhook endpoint: http://localhost:${PORT}/webhooks/github`);
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📡 Webhook endpoint: http://localhost:${PORT}/webhooks/github`);
 });
