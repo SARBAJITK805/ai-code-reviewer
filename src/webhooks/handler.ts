@@ -7,11 +7,13 @@ export class WebhookHandler {
 
         try {
             switch (action) {
+                case 'opened':
                 case 'synchronize':
                     await this.queueReview(pull_request, repository, installation.id)
                     break;
                 case 'closed':
                     await this.cleanup(pull_request, repository)
+                    break;
                 default:
                     console.log(`Ignoring PR action: ${action}`);
                     break;

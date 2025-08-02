@@ -3,6 +3,7 @@ import dotenv from "dotenv"
 import { WebhookHandler } from "./webhooks/handler"
 import { App } from "@octokit/app"
 import fs from "fs"
+import { router } from "./routes/api"
 import { createNodeMiddleware, Webhooks } from "@octokit/webhooks"
 import { prisma } from "./prisma"
 
@@ -29,10 +30,10 @@ webhooks.onError((error) => {
     console.log(`Error message: ${error}`);
 });
 
-webhooks.onAny(async ({ id, name, payload }) => {
-    console.log("WEBHOOK EVENT RECEIVED!");
-    console.log(`Event: ${name}, ID: ${id}`);
-})
+// webhooks.onAny(async ({ id, name, payload }) => {
+//     console.log("WEBHOOK EVENT RECEIVED!");
+//     console.log(`Event: ${name}, ID: ${id}`);
+// })
 
 webhooks.on('pull_request', async ({ id, name, payload }) => {
     try {
@@ -71,6 +72,8 @@ app.use(middleware);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use('/api', router);
 
 app.get('/', async (req, res) => {
     try {

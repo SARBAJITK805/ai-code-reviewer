@@ -44,8 +44,7 @@ router.get('/reviews', async (req, res) => {
 
 router.get('/reviews/:id', async (req, res) => {
     try {
-        const { id } = req.params.id;
-
+        const id = req.params.id;
         const review = await prisma.review.findUnique({
             where: { id: parseInt(id) },
             include: {
