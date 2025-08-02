@@ -1,5 +1,6 @@
 import express from "express"
 import dotenv from "dotenv"
+import { WebhookHandler } from "./webhooks/handler"
 import { App } from "@octokit/app"
 import fs from "fs"
 import { createNodeMiddleware, Webhooks } from "@octokit/webhooks"
@@ -34,10 +35,35 @@ webhooks.onAny(async ({ id, name, payload }) => {
 })
 
 webhooks.on('pull_request', async ({ id, name, payload }) => {
-    console.log("PULL REQUEST EVENT!");
-    console.log(`Action: ${payload.action}`);
-    console.log(`PR #${payload.pull_request.number}: ${payload.pull_request.title}`);
-    console.log(`Repository: ${payload.repository.full_name}`);
+    try {
+        await WebhookHandler.handelPullRequest({ payload })
+    } catch (error) {
+        console.log("error handling pull request : ", error);
+    }
+});
+
+webhooks.on('installation', async ({ payload }) => {
+    try {
+        await WebhookHandler.handleInstallation({
+            action: payload.action,
+            installation: payload.installation,
+            repositories: payload.repositories || []
+        });
+    } catch (error) {
+        console.error('Error handling installation:', error);
+    }
+});
+
+webhooks.on('installation_repositories', async ({ payload }) => {
+    try {
+        await WebhookHandler.handleInstallation({
+            action: 'repositories_' + payload.action,
+            installation: payload.installation,
+            repositories: payload.repositories_added || payload.repositories_removed || []
+        });
+    } catch (error) {
+        console.error('Error handling installation repositories:', error);
+    }
 });
 
 const middleware = createNodeMiddleware(webhooks, { path: "/webhooks/github" });
@@ -65,8 +91,7 @@ app.get('/', async (req, res) => {
 })
 
 
-
 app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📡 Webhook endpoint: http://localhost:${PORT}/webhooks/github`);
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Webhook endpoint: http://localhost:${PORT}/webhooks/github`);
 });
