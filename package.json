@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "npx tsup src/server.ts --format esm --outDir dist",
-    "dev":"npx tsup src/server.ts --format esm --outDir dist && node ./dist/server.js"
+    "dev": "npx tsup src/server.ts --format esm --outDir dist && node ./dist/server.js"
   },
   "keywords": [],
   "author": "",
@@ -13,6 +13,7 @@
   "type": "module",
   "dependencies": {
     "@octokit/app": "^16.0.1",
+    "@octokit/rest": "^22.0.0",
     "@octokit/webhooks": "^14.1.1",
     "@prisma/client": "^6.13.0",
     "cors": "^2.8.5",

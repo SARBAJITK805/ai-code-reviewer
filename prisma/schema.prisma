@@ -46,6 +46,8 @@ model Review {
   completedAt    DateTime? @map("completed_at")
 
   installation Installation @relation(fields: [installationId], references: [installationId])
+  fileChanges  FileChange[]
+  comments     ReviewComment[]
 
   @@unique([prNumber, repoFullName])
   @@index([repoFullName, prNumber])
@@ -55,16 +57,42 @@ model Review {
 }
 
 model ReviewComment {
-  id        Int      @id @default(autoincrement())
-  reviewId  Int      @map("review_id")
-  fileName  String   @map("file_name") @db.VarChar(500)
-  lineNumber Int     @map("line_number")
-  severity  String   @db.VarChar(20)
-  type      String   @db.VarChar(50)
-  message   String   @db.Text
-  suggestion String? @db.Text
-  createdAt DateTime @default(now()) @map("created_at")
+  id         Int      @id @default(autoincrement())
+  reviewId   Int      @map("review_id")
+  fileName   String   @map("file_name") @db.VarChar(500)
+  lineNumber Int      @map("line_number")
+  severity   String   @db.VarChar(20)
+  type       String   @db.VarChar(50)
+  message    String   @db.Text
+  suggestion String?  @db.Text
+  rule       String?  @db.VarChar(100)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 
   @@index([reviewId])
+  @@index([fileName])
   @@map("review_comments")
+  FileChange FileChange[]
+}
+
+model FileChange {
+  id          Int      @id @default(autoincrement())
+  reviewId    Int      @map("review_id")
+  filename    String   @db.VarChar(500)
+  status      String   @db.VarChar(20) 
+  language    String?  @db.VarChar(50)
+  additions   Int      @default(0)
+  deletions   Int      @default(0)
+  patch       String?  @db.Text
+  analyzed    Boolean  @default(false)
+  shouldReview Boolean @default(true) @map("should_review")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  comments ReviewComment[]
+
+  @@index([reviewId])
+  @@index([filename])
+  @@map("file_changes")
 }
