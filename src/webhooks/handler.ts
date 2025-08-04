@@ -4,7 +4,7 @@ import { prisma } from '../prisma';
 import { githubService } from '../services/github.service';
 import { fileAnalysisService } from '../services/file-analysis.service';
 
-export class WebhookHandlers {
+export class WebhookHandler {
 
     static async handlePullRequest(payload: GitHubWebhookPayload): Promise<void> {
         const { action, pull_request, repository, installation } = payload;
@@ -13,8 +13,6 @@ export class WebhookHandlers {
             console.log('Missing pull_request or installation in payload');
             return;
         }
-
-        console.log(`Processing PR ${action}: ${repository.full_name}#${pull_request.number}`);
 
         try {
             switch (action) {
@@ -56,9 +54,7 @@ export class WebhookHandlers {
                 progress: 0
             };
 
-
             const review = await prisma.$transaction(async (tx) => {
-
                 const review = await tx.review.upsert({
                     where: {
                         prNumber_repoFullName: {
@@ -81,7 +77,6 @@ export class WebhookHandlers {
                     }
                 });
 
-
                 await tx.reviewComment.deleteMany({
                     where: { reviewId: review.id }
                 });
@@ -92,9 +87,6 @@ export class WebhookHandlers {
 
                 return review;
             });
-
-            console.log(`Queued review for PR #${pullRequest.number} (ID: ${review.id})`);
-
 
             await this.startReviewProcess(review.id, repository, installationId);
 
@@ -110,12 +102,10 @@ export class WebhookHandlers {
         installationId: number
     ): Promise<void> {
         try {
-
             await this.updateReviewStatus(null, null, 'in_progress', {
                 step: 'fetching_files',
                 progress: 10
             }, reviewId);
-
 
             const review = await prisma.review.findUnique({
                 where: { id: reviewId }
@@ -126,13 +116,16 @@ export class WebhookHandlers {
             }
 
             const [owner, repo] = repository.full_name.split('/');
+            
+            // Extract PR number from the review data
+            const prNumber = review.prNumber;
 
-
+            // Use the passed installationId parameter instead of installation.id
             const files = await githubService.getPRFiles(
-                installationId,
-                owner,
-                repo,
-                review.prNumber
+                installationId,     
+                owner,              
+                repo,               
+                prNumber           
             );
 
             await this.updateReviewStatus(null, null, 'in_progress', {
@@ -140,7 +133,6 @@ export class WebhookHandlers {
                 progress: 30,
                 files_found: files.length
             }, reviewId);
-
 
             let analyzedCount = 0;
             for (const file of files) {
@@ -159,7 +151,6 @@ export class WebhookHandlers {
                         shouldReview: analysis.shouldReview
                     }
                 });
-
 
                 if (analysis.issues.length > 0) {
                     const comments = analysis.issues.map(issue => ({
@@ -192,12 +183,11 @@ export class WebhookHandlers {
                 step: 'ready_for_ai_review',
                 progress: 70,
                 files_analyzed: analyzedCount,
-                files_to_review: files.filter(f => fileAnalysisService.shouldReviewFile(f.filename, f.status)).length
+                files_to_review: files.filter(f => fileAnalysisService.shouldReview(f.filename, f.status)).length
             }, reviewId);
 
-            console.log(`🔍 Analyzed ${analyzedCount} files for review ${reviewId}`);
+            console.log(`Analyzed ${analyzedCount} files for review ${reviewId}`);
 
-            //Queue for AI review (Day 3)
 
         } catch (error) {
             console.error(`Error in review process for ${reviewId}:`, error);
@@ -297,7 +287,6 @@ export class WebhookHandlers {
                     }
                 });
 
-
                 for (const repo of repositories) {
                     await tx.repository.upsert({
                         where: {
@@ -320,8 +309,6 @@ export class WebhookHandlers {
                 }
             });
 
-            console.log(`Recorded installation for ${installation.account.login} with ${repositories.length} repositories`);
-
         } catch (error) {
             console.error('Error recording installation:', error);
         }
@@ -330,7 +317,6 @@ export class WebhookHandlers {
     static async removeInstallation(installationId: number): Promise<void> {
         try {
             await prisma.$transaction(async (tx) => {
-
                 await tx.review.updateMany({
                     where: { installationId },
                     data: { status: 'cancelled' }
@@ -340,13 +326,10 @@ export class WebhookHandlers {
                     where: { installationId }
                 });
 
-
                 await tx.installation.delete({
                     where: { installationId }
                 });
             });
-
-            console.log(`Removed installation ${installationId}`);
 
         } catch (error) {
             console.error('Error removing installation:', error);
@@ -376,7 +359,6 @@ export class WebhookHandlers {
                         }
                     });
                 }
-                console.log(`Added ${repositories.length} repositories`);
 
             } else if (action === 'repositories_removed') {
                 for (const repo of repositories) {
@@ -389,7 +371,6 @@ export class WebhookHandlers {
                         }
                     });
                 }
-                console.log(`Removed ${repositories.length} repositories`);
             }
 
         } catch (error) {

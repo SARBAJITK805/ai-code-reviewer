@@ -26,7 +26,8 @@ export class FileAnalysisService {
         '.tar', '.gz', '.exe', '.dll', '.so', '.dylib'
     ]);
 
-    sholudReview(filename: string, status: string) {
+    // Fixed typo: sholudReview -> shouldReview
+    shouldReview(filename: string, status: string) {
         if (status == 'removed') {
             return false
         }
@@ -79,8 +80,9 @@ export class FileAnalysisService {
 
         return languageMap[ext] || 'unknown';
     }
+    
     analyzeFile(file: GitHubFile) {
-        const shouldReview = this.sholudReview(file.filename, file.status);
+        const shouldReview = this.shouldReview(file.filename, file.status);
         const language = this.getLanguage(file.filename)
 
         const analysis = {
@@ -126,18 +128,16 @@ export class FileAnalysisService {
 
         return issues;
     }
+    
     private checkLineForIssues(line: string, lineNumber: number, language: string): CodeIssue[] {
         const issues: CodeIssue[] = [];
         const trimmedLine = line.trim();
-
 
         if (!trimmedLine || trimmedLine.startsWith('//') || trimmedLine.startsWith('#')) {
             return issues;
         }
 
-
         this.checkCommonIssues(line, lineNumber, issues);
-
 
         switch (language) {
             case 'javascript':

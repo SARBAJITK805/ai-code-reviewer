@@ -35,9 +35,9 @@ webhooks.onError((error) => {
 //     console.log(`Event: ${name}, ID: ${id}`);
 // })
 
-webhooks.on('pull_request', async ({ id, name, payload }) => {
+webhooks.on('pull_request', async ({payload }) => {
     try {
-        await WebhookHandler.handelPullRequest({ payload })
+        await WebhookHandler.handlePullRequest( payload )
     } catch (error) {
         console.log("error handling pull request : ", error);
     }
@@ -92,7 +92,6 @@ app.get('/', async (req, res) => {
         });
     }
 })
-
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
